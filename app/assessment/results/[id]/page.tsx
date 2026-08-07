@@ -10,9 +10,11 @@ interface Assessment {
   id: number;
   status: string;
   skor: number;
+  skor_basic: number;
+  skor_intermediate: number;
+  qualified_level: string | null;
   mulai_pada: string;
   selesai_pada: string;
-  nama_level: string;
 }
 
 interface Answer {
@@ -26,6 +28,7 @@ interface Answer {
   is_correct: boolean;
   poin: number;
   poin_didapat: number;
+  level_type: string;
 }
 
 export default function ResultsPage() {
@@ -51,22 +54,12 @@ export default function ResultsPage() {
 
       const { data: assessmentData } = await supabase
         .from("assessments")
-        .select(`
-          id,
-          status,
-          skor,
-          mulai_pada,
-          selesai_pada,
-          levels (nama_level)
-        `)
+        .select("*")
         .eq("id", assessmentId)
         .single();
 
       if (assessmentData) {
-        setAssessment({
-          ...assessmentData,
-          nama_level: (assessmentData as any).levels?.nama_level || "Unknown",
-        });
+        setAssessment(assessmentData);
       }
 
       const { data: answersData } = await supabase
@@ -82,7 +75,8 @@ export default function ResultsPage() {
             instruksi,
             tipe_soal,
             expected_value,
-            poin
+            poin,
+            level_type
           )
         `)
         .eq("assessment_id", assessmentId);
@@ -99,6 +93,7 @@ export default function ResultsPage() {
           is_correct: a.is_correct,
           poin: a.questions?.poin || 0,
           poin_didapat: a.poin_didapat || 0,
+          level_type: a.questions?.level_type || "basic",
         }));
         setAnswers(formatted.sort((a, b) => a.nomor_soal - b.nomor_soal));
       }
@@ -130,8 +125,10 @@ export default function ResultsPage() {
     );
   }
 
-  const correctCount = answers.filter((a) => a.is_correct).length;
-  const totalCount = answers.length;
+  const basicAnswers = answers.filter((a) => a.level_type === "basic");
+  const intermediateAnswers = answers.filter((a) => a.level_type === "intermediate");
+  const basicCorrect = basicAnswers.filter((a) => a.is_correct).length;
+  const intermediateCorrect = intermediateAnswers.filter((a) => a.is_correct).length;
 
   const getScoreColor = (skor: number) => {
     if (skor >= 80) return "text-green-600";
@@ -145,13 +142,6 @@ export default function ResultsPage() {
     return "bg-red-100";
   };
 
-  const getScoreLabel = (skor: number) => {
-    if (skor >= 80) return "Sangat Baik";
-    if (skor >= 60) return "Baik";
-    if (skor >= 40) return "Cukup";
-    return "Perlu Perbaikan";
-  };
-
   return (
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -159,108 +149,207 @@ export default function ResultsPage() {
           &larr; Kembali ke Dashboard
         </Link>
 
-        {/* Score Card */}
+        {/* Qualified Level Card */}
         <div className="card mb-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Hasil Asesmen {assessment.nama_level}
-            </h1>
-            <p className="text-gray-500 text-sm">
-              {formatDate(assessment.mulai_pada)}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Hasil Placement Test</h1>
+            <p className="text-gray-500 text-sm">{formatDate(assessment.mulai_pada)}</p>
           </div>
 
-          <div className={`rounded-xl p-8 mt-6 ${getScoreBg(assessment.skor)}`}>
+          <div className={`rounded-xl p-8 mt-6 ${
+            assessment.qualified_level === "Intermediate" ? "bg-blue-100" : "bg-green-100"
+          }`}>
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-600 mb-2">Skor Anda</p>
-              <p className={`text-6xl font-bold ${getScoreColor(assessment.skor)}`}>
-                {assessment.skor}%
+              <p className="text-sm font-medium text-gray-600 mb-2">Level Anda</p>
+              <p className={`text-5xl font-bold ${
+                assessment.qualified_level === "Intermediate" ? "text-blue-600" : "text-green-600"
+              }`}>
+                {assessment.qualified_level || "Basic"}
               </p>
-              <p className={`text-lg font-semibold mt-2 ${getScoreColor(assessment.skor)}`}>
-                {getScoreLabel(assessment.skor)}
+              <p className={`text-lg font-semibold mt-2 ${
+                assessment.qualified_level === "Intermediate" ? "text-blue-700" : "text-green-700"
+              }`}>
+                {assessment.qualified_level === "Intermediate"
+                  ? "Selamat! Anda lolos level Intermediate"
+                  : "Anda masuk level Basic"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Score Breakdown */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* Basic Score */}
+          <div className="card">
+            <h3 className="text-lg font-bold mb-4 text-excel-green">Soal Basic</h3>
+            <div className={`rounded-lg p-6 ${getScoreBg(assessment.skor_basic)}`}>
+              <div className="text-center">
+                <p className={`text-4xl font-bold ${getScoreColor(assessment.skor_basic)}`}>
+                  {assessment.skor_basic}%
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  {basicCorrect}/{basicAnswers.length} soal benar
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 text-sm text-gray-600">
+              <p>Topik: Fungsi dasar (SUM, AVERAGE, COUNT, MIN, MAX)</p>
+              <p className={`mt-1 font-medium ${
+                assessment.skor_basic >= 60 ? "text-green-600" : "text-red-600"
+              }`}>
+                {assessment.skor_basic >= 60 ? "✓ Lolos" : "✗ Tidak Lolos"} (Batas: 60%)
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-excel-green">{correctCount}</p>
-              <p className="text-sm text-gray-600">Benar</p>
+          {/* Intermediate Score */}
+          <div className="card">
+            <h3 className="text-lg font-bold mb-4 text-primary-600">Soal Intermediate</h3>
+            <div className={`rounded-lg p-6 ${getScoreBg(assessment.skor_intermediate)}`}>
+              <div className="text-center">
+                <p className={`text-4xl font-bold ${getScoreColor(assessment.skor_intermediate)}`}>
+                  {assessment.skor_intermediate}%
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  {intermediateCorrect}/{intermediateAnswers.length} soal benar
+                </p>
+              </div>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-600">{totalCount - correctCount}</p>
-              <p className="text-sm text-gray-600">Salah</p>
+            <div className="mt-4 text-sm text-gray-600">
+              <p>Topik: SUMIF, COUNTIF, VLOOKUP, INDEX-MATCH</p>
+              <p className={`mt-1 font-medium ${
+                assessment.skor_intermediate >= 60 ? "text-green-600" : "text-red-600"
+              }`}>
+                {assessment.skor_intermediate >= 60 ? "✓ Lolos" : "✗ Tidak Lolos"} (Batas: 60%)
+              </p>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">{totalCount}</p>
-              <p className="text-sm text-gray-600">Total Soal</p>
+          </div>
+        </div>
+
+        {/* Level Determination */}
+        <div className="card mb-8">
+          <h3 className="text-lg font-bold mb-4">Penentuan Level</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span>Skor Basic ≥ 60%</span>
+              <span className={`font-medium ${
+                assessment.skor_basic >= 60 ? "text-green-600" : "text-red-600"
+              }`}>
+                {assessment.skor_basic >= 60 ? "✓ Ya" : "✗ Tidak"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span>Skor Intermediate ≥ 60%</span>
+              <span className={`font-medium ${
+                assessment.skor_intermediate >= 60 ? "text-green-600" : "text-red-600"
+              }`}>
+                {assessment.skor_intermediate >= 60 ? "✓ Ya" : "✗ Tidak"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <span className="font-medium">Level Yang Ditentukan</span>
+              <span className={`font-bold ${
+                assessment.qualified_level === "Intermediate" ? "text-blue-600" : "text-green-600"
+              }`}>
+                {assessment.qualified_level}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Detail Answers */}
-        <div className="card">
+        <div className="card mb-8">
           <h2 className="text-xl font-bold mb-4">Detail Jawaban</h2>
-          <div className="space-y-4">
-            {answers.map((answer) => (
-              <div
-                key={answer.id}
-                className={`p-4 rounded-lg border-l-4 ${
-                  answer.is_correct
-                    ? "border-green-500 bg-green-50"
-                    : "border-red-500 bg-red-50"
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start">
-                    <span
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3 flex-shrink-0 ${
-                        answer.is_correct ? "bg-green-500" : "bg-red-500"
-                      }`}
-                    >
-                      {answer.nomor_soal}
-                    </span>
-                    <div>
-                      <h3 className="font-medium">{answer.judul_soal}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{answer.instruksi}</p>
-                      <div className="mt-2 text-sm">
-                        <p>
-                          <span className="font-medium">Jawaban Anda:</span>{" "}
-                          <span className={answer.is_correct ? "text-green-700" : "text-red-700"}>
-                            {answer.jawaban_user || "-"}
-                          </span>
+
+          {/* Basic Section */}
+          <div className="mb-6">
+            <h3 className="font-bold text-excel-green mb-3">Soal Basic</h3>
+            <div className="space-y-3">
+              {basicAnswers.map((answer) => (
+                <div
+                  key={answer.id}
+                  className={`p-3 rounded-lg border-l-4 ${
+                    answer.is_correct
+                      ? "border-green-500 bg-green-50"
+                      : "border-red-500 bg-red-50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start">
+                      <span
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 ${
+                          answer.is_correct ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      >
+                        {answer.nomor_soal}
+                      </span>
+                      <div>
+                        <p className="font-medium text-sm">{answer.judul_soal}</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Jawaban: <span className={answer.is_correct ? "text-green-700" : "text-red-700"}>{answer.jawaban_user || "-"}</span>
+                          {!answer.is_correct && answer.expected_value && (
+                            <span className="text-green-700 ml-2">(Benar: {answer.expected_value})</span>
+                          )}
                         </p>
-                        {!answer.is_correct && answer.expected_value && (
-                          <p>
-                            <span className="font-medium">Jawaban Benar:</span>{" "}
-                            <span className="text-green-700">{answer.expected_value}</span>
-                          </p>
-                        )}
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={`badge ${answer.is_correct ? "badge-green" : "badge-red"}`}
-                    >
-                      {answer.is_correct ? "+1" : "0"} poin
+                    <span className={`badge text-xs ${answer.is_correct ? "badge-green" : "badge-red"}`}>
+                      {answer.is_correct ? "+1" : "0"}
                     </span>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          {/* Intermediate Section */}
+          <div>
+            <h3 className="font-bold text-primary-600 mb-3">Soal Intermediate</h3>
+            <div className="space-y-3">
+              {intermediateAnswers.map((answer) => (
+                <div
+                  key={answer.id}
+                  className={`p-3 rounded-lg border-l-4 ${
+                    answer.is_correct
+                      ? "border-green-500 bg-green-50"
+                      : "border-red-500 bg-red-50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start">
+                      <span
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 ${
+                          answer.is_correct ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      >
+                        {answer.nomor_soal}
+                      </span>
+                      <div>
+                        <p className="font-medium text-sm">{answer.judul_soal}</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Jawaban: <span className={answer.is_correct ? "text-green-700" : "text-red-700"}>{answer.jawaban_user || "-"}</span>
+                          {!answer.is_correct && answer.expected_value && (
+                            <span className="text-green-700 ml-2">(Benar: {answer.expected_value})</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`badge text-xs ${answer.is_correct ? "badge-green" : "badge-red"}`}>
+                      {answer.is_correct ? "+1" : "0"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4 mt-8">
+        <div className="flex gap-4">
           <Link href="/dashboard" className="btn-secondary flex-1 text-center">
             Kembali ke Dashboard
           </Link>
-          <Link
-            href={`/assessment/${assessment.nama_level.toLowerCase() === "basic" ? 1 : 2}`}
-            className="btn-primary flex-1 text-center"
-          >
+          <Link href="/assessment" className="btn-primary flex-1 text-center">
             Ulangi Asesmen
           </Link>
         </div>

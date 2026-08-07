@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { assessmentId, levelId, cellValues } = body;
+    const { assessmentId, cellValues, currentPhase } = body;
 
-    if (!assessmentId || !levelId || !cellValues) {
+    if (!assessmentId || !cellValues || !currentPhase) {
       return NextResponse.json(
         { error: "Data tidak lengkap" },
         { status: 400 }
@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     const { data: questions, error: questionsError } = await supabase
       .from("questions")
       .select("*")
-      .eq("level_id", levelId)
+      .eq("level_id", 1)
+      .eq("level_type", currentPhase)
       .order("nomor_soal");
 
     if (questionsError || !questions) {
@@ -45,8 +46,7 @@ export async function POST(request: NextRequest) {
       licenseKey: "non-commercial-and-evaluation",
     });
 
-    const sheetName = "Sheet1";
-    hf.addSheet(sheetName);
+    hf.addSheet("Sheet1");
 
     Object.entries(cellValues).forEach(([cellRef, value]) => {
       const col = cellRef.charCodeAt(0) - 65;
@@ -55,28 +55,16 @@ export async function POST(request: NextRequest) {
 
       if (val.startsWith("=")) {
         try {
-          hf.setCellContents(
-            { sheet: 0, row, col },
-            [[val]]
-          );
+          hf.setCellContents({ sheet: 0, row, col }, [[val]]);
         } catch (e) {
-          hf.setCellContents(
-            { sheet: 0, row, col },
-            [[val]]
-          );
+          hf.setCellContents({ sheet: 0, row, col }, [[val]]);
         }
       } else {
         const numVal = parseFloat(val);
         if (!isNaN(numVal)) {
-          hf.setCellContents(
-            { sheet: 0, row, col },
-            [[numVal]]
-          );
+          hf.setCellContents({ sheet: 0, row, col }, [[numVal]]);
         } else {
-          hf.setCellContents(
-            { sheet: 0, row, col },
-            [[val]]
-          );
+          hf.setCellContents({ sheet: 0, row, col }, [[val]]);
         }
       }
     });
@@ -141,6 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     const skor = totalPoin > 0 ? Math.round((poinDidapat / totalPoin) * 100) : 0;
+    const passedBasic = skor >= 60;
 
     const { error: answersError } = await supabase
       .from("assessment_answers")
@@ -150,30 +139,55 @@ export async function POST(request: NextRequest) {
       console.error("Answers error:", answersError);
     }
 
-    const { error: updateError } = await supabase
-      .from("assessments")
-      .update({
-        status: "completed",
-        skor: skor,
-        selesai_pada: new Date().toISOString(),
-      })
-      .eq("id", assessmentId);
+    if (currentPhase === "basic") {
+      await supabase
+        .from("assessments")
+        .update({
+          skor_basic: skor,
+        })
+        .eq("id", assessmentId);
 
-    if (updateError) {
-      console.error("Update error:", updateError);
+      return NextResponse.json({
+        success: true,
+        phase: "basic",
+        skor,
+        passedBasic,
+        totalPoin,
+        poinDidapat,
+      });
+    } else {
+      const { data: assessment } = await supabase
+        .from("assessments")
+        .select("skor_basic")
+        .eq("id", assessmentId)
+        .single();
+
+      const skorBasic = assessment?.skor_basic || 0;
+      const totalSkor = Math.round((skorBasic + skor) / 2);
+      const qualifiedLevel = skorBasic >= 60 && skor >= 60 ? "Intermediate" : "Basic";
+
+      await supabase
+        .from("assessments")
+        .update({
+          status: "completed",
+          skor: totalSkor,
+          skor_intermediate: skor,
+          qualified_level: qualifiedLevel,
+          selesai_pada: new Date().toISOString(),
+        })
+        .eq("id", assessmentId);
+
+      return NextResponse.json({
+        success: true,
+        phase: "intermediate",
+        skor: totalSkor,
+        skorBasic,
+        skorIntermediate: skor,
+        qualifiedLevel,
+        totalPoin,
+        poinDidapat,
+      });
     }
-
-    return NextResponse.json({
-      success: true,
-      skor,
-      totalPoin,
-      poinDidapat,
-      answers: answers.map((a) => ({
-        question_id: a.question_id,
-        is_correct: a.is_correct,
-        jawaban_user: a.jawaban_user,
-      })),
-    });
   } catch (error: any) {
     console.error("Grade error:", error);
     return NextResponse.json(

@@ -1,5 +1,5 @@
 -- ============================================
--- Supabase Schema for Asesmen Excel (Interactive)
+-- Supabase Schema for Asesmen Excel (Placement Test)
 -- Jalankan ini di Supabase SQL Editor
 -- ============================================
 
@@ -12,20 +12,20 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Levels table
+-- 2. Levels table (hanya 1: Placement Test)
 CREATE TABLE IF NOT EXISTS levels (
   id SERIAL PRIMARY KEY,
   nama_level VARCHAR(50) NOT NULL,
   deskripsi TEXT,
-  durasi_menit INT DEFAULT 60,
-  jumlah_soal INT DEFAULT 10,
-  initial_data JSONB
+  durasi_menit INT DEFAULT 45,
+  jumlah_soal INT DEFAULT 20
 );
 
 -- 3. Questions table
 CREATE TABLE IF NOT EXISTS questions (
   id SERIAL PRIMARY KEY,
   level_id INT REFERENCES levels(id) ON DELETE CASCADE,
+  level_type VARCHAR(20) DEFAULT 'basic' CHECK (level_type IN ('basic', 'intermediate')),
   nomor_soal INT NOT NULL,
   judul_soal VARCHAR(255) NOT NULL,
   instruksi TEXT NOT NULL,
@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS assessments (
   level_id INT REFERENCES levels(id) ON DELETE CASCADE,
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
   skor DECIMAL(5,2) DEFAULT 0,
+  skor_basic DECIMAL(5,2) DEFAULT 0,
+  skor_intermediate DECIMAL(5,2) DEFAULT 0,
+  qualified_level VARCHAR(20),
   mulai_pada TIMESTAMPTZ DEFAULT NOW(),
   selesai_pada TIMESTAMPTZ
 );
@@ -60,69 +63,35 @@ CREATE TABLE IF NOT EXISTS assessment_answers (
 -- Seed Data
 -- ============================================
 
--- Insert Levels with initial_data
-INSERT INTO levels (nama_level, deskripsi, durasi_menit, jumlah_soal, initial_data) VALUES
-('Basic', 'Asesmen dasar Excel meliputi operasi sel, fungsi dasar (SUM, AVERAGE, COUNT, MIN, MAX)', 30, 10, '{
-  "data": [
-    ["Nama", "Harga", "Qty", "Total"],
-    ["Apel", 15000, 10, null],
-    ["Jeruk", 12000, 8, null],
-    ["Mangga", 25000, 5, null],
-    ["Pisang", 8000, 15, null],
-    ["Anggur", 30000, 3, null],
-    [null, null, null, null],
-    ["Total Harga:", null, null, null],
-    ["Rata-rata Harga:", null, null, null],
-    ["Jumlah Item:", null, null, null],
-    ["Harga Termurah:", null, null, null],
-    ["Harga Termahal:", null, null, null]
-  ],
-  "colWidths": [150, 120, 80, 120]
-}'),
-('Intermediate', 'Asesmen lanjutan meliputi VLOOKUP, INDEX-MATCH, COUNTIF, SUMIF', 45, 10, '{
-  "data": [
-    ["Item", "Kategori", "Harga", "Qty", "Total"],
-    ["Laptop", "Elektronik", 8500000, 2, null],
-    ["Mouse", "Elektronik", 150000, 10, null],
-    ["Meja", "Furniture", 500000, 3, null],
-    ["Kursi", "Furniture", 350000, 5, null],
-    ["Keyboard", "Elektronik", 250000, 4, null],
-    ["Lemari", "Furniture", 1200000, 1, null],
-    ["Headphone", "Elektronik", 450000, 3, null],
-    [null, null, null, null, null],
-    ["Total Elektronik:", null, null, null, null],
-    ["Total Furniture:", null, null, null, null],
-    ["Jumlah Semua Item:", null, null, null, null],
-    ["Rata-rata Harga:", null, null, null, null]
-  ],
-  "colWidths": [150, 120, 120, 80, 120]
-}');
+-- Insert Level (Placement Test)
+INSERT INTO levels (id, nama_level, deskripsi, durasi_menit, jumlah_soal) VALUES
+(1, 'Placement Test', 'Tes penentuan level Excel: Basic atau Intermediate. Kerjakan semua soal secara berurutan.', 45, 20);
 
--- Insert Questions - Basic Level
-INSERT INTO questions (level_id, nomor_soal, judul_soal, instruksi, tipe_soal, answer_cell, expected_value, poin) VALUES
-(1, 1, 'Hitung Total per Item', 'Di sel D2, buat rumus untuk mengalikan Harga (B2) dengan Qty (C2), lalu drag ke bawah sampai D6', 'formula', 'D2', '=B2*C2', 1),
-(1, 2, 'Jumlahkan Semua Total', 'Di sel D8, jumlahkan semua nilai di kolom Total (D2:D6)', 'formula', 'D8', '=SUM(D2:D6)', 1),
-(1, 3, 'Rata-rata Harga', 'Di sel B9, hitung rata-rata harga semua item', 'formula', 'B9', '=AVERAGE(B2:B6)', 1),
-(1, 4, 'Hitung Jumlah Item', 'Di sel B10, hitung berapa banyak item ( jumlah baris yang ada data)', 'formula', 'B10', '=COUNT(B2:B6)', 1),
-(1, 5, 'Harga Termurah', 'Di sel B11, temukan harga termurah dari semua item', 'formula', 'B11', '=MIN(B2:B6)', 1),
-(1, 6, 'Harga Termahal', 'Di sel B12, temukan harga termahal dari semua item', 'formula', 'B12', '=MAX(B2:B6)', 1),
-(1, 7, 'Total Qty', 'Di sel C8, jumlahkan semua qty di kolom C', 'formula', 'C8', '=SUM(C2:C6)', 1),
-(1, 8, 'Rata-rata Qty', 'Di sel C9, hitung rata-rata qty', 'formula', 'C9', '=AVERAGE(C2:C6)', 1),
-(1, 9, 'Jumlah Harga Item', 'Di sel B8, jumlahkan semua harga di kolom B', 'formula', 'B8', '=SUM(B2:B6)', 1),
-(1, 10, 'Harga Tertinggi Kedua', 'Di sel B12, gunakan kombinasi MAX dan IF atau cara lain untuk mencari harga tertinggi kedua', 'input', 'B12', '25000', 1);
+-- Insert Questions - BASIC (10 soal)
+INSERT INTO questions (level_id, level_type, nomor_soal, judul_soal, instruksi, tipe_soal, answer_cell, expected_value, poin) VALUES
+(1, 'basic', 1, 'Hitung Total per Item', 'Di sel D2, buat rumus untuk mengalikan Harga (B2) dengan Qty (C2)', 'formula', 'D2', '=B2*C2', 1),
+(1, 'basic', 2, 'Jumlahkan Semua Total', 'Di sel D8, jumlahkan semua nilai di kolom Total (D2:D6)', 'formula', 'D8', '=SUM(D2:D6)', 1),
+(1, 'basic', 3, 'Rata-rata Harga', 'Di sel B9, hitung rata-rata harga semua item', 'formula', 'B9', '=AVERAGE(B2:B6)', 1),
+(1, 'basic', 4, 'Hitung Jumlah Item', 'Di sel B10, hitung berapa banyak item menggunakan COUNT', 'formula', 'B10', '=COUNT(B2:B6)', 1),
+(1, 'basic', 5, 'Harga Termurah', 'Di sel B11, temukan harga termurah menggunakan MIN', 'formula', 'B11', '=MIN(B2:B6)', 1),
+(1, 'basic', 6, 'Harga Termahal', 'Di sel B12, temukan harga termahal menggunakan MAX', 'formula', 'B12', '=MAX(B2:B6)', 1),
+(1, 'basic', 7, 'Total Qty', 'Di sel C8, jumlahkan semua qty di kolom C', 'formula', 'C8', '=SUM(C2:C6)', 1),
+(1, 'basic', 8, 'Rata-rata Qty', 'Di sel C9, hitung rata-rata qty', 'formula', 'C9', '=AVERAGE(C2:C6)', 1),
+(1, 'basic', 9, 'Jumlah Harga Item', 'Di sel B8, jumlahkan semua harga di kolom B', 'formula', 'B8', '=SUM(B2:B6)', 1),
+(1, 'basic', 10, 'Total Penjualan', 'Di sel D7, jumlahkan semua total di D2:D6', 'formula', 'D7', '=SUM(D2:D6)', 1);
 
--- Insert Questions - Intermediate Level
-INSERT INTO questions (level_id, nomor_soal, judul_soal, instruksi, tipe_soal, answer_cell, expected_value, poin) VALUES
-(2, 1, 'Hitung Total per Item', 'Di sel E2, buat rumus untuk mengalikan Harga (C2) dengan Qty (D2), lalu drag ke bawah', 'formula', 'E2', '=C2*D2', 1),
-(2, 2, 'Total Elektronik', 'Di sel E10, gunakan SUMIF untuk menjumlahkan total dari kategori "Elektronik"', 'formula', 'E10', '=SUMIF(B2:B8,"Elektronik",E2:E8)', 1),
-(2, 3, 'Total Furniture', 'Di sel E11, gunakan SUMIF untuk menjumlahkan total dari kategori "Furniture"', 'formula', 'E11', '=SUMIF(B2:B8,"Furniture",E2:E8)', 1),
-(2, 4, 'Jumlah Semua Item', 'Di sel E12, hitung jumlah semua item menggunakan COUNTA atau COUNT', 'formula', 'E12', '=COUNTA(A2:A8)', 1),
-(2, 5, 'Rata-rata Harga', 'Di sel C13, hitung rata-rata harga semua item', 'formula', 'C13', '=AVERAGE(C2:C8)', 1),
-(2, 6, 'Jumlah Item Elektronik', 'Di sel D10, hitung berapa item berkategori Elektronik menggunakan COUNTIF', 'formula', 'D10', '=COUNTIF(B2:B8,"Elektronik")', 1),
-(2, 7, 'Jumlah Item Furniture', 'Di sel D11, hitung berapa item berkategori Furniture menggunakan COUNTIF', 'formula', 'D11', '=COUNTIF(B2:B8,"Furniture")', 1),
-(2, 8, 'Total Qty Semua', 'Di sel D12, jumlahkan semua qty di kolom D', 'formula', 'D12', '=SUM(D2:D8)', 1),
-(2, 9, 'Harga Tertinggi', 'Di sel C14, temukan harga tertinggi menggunakan MAX', 'formula', 'C14', '=MAX(C2:C8)', 1),
-(2, 10, 'Harga Terendah', 'Di sel C15, temukan harga terendah menggunakan MIN', 'formula', 'C15', '=MIN(C2:C8)', 1);
+-- Insert Questions - INTERMEDIATE (10 soal)
+INSERT INTO questions (level_id, level_type, nomor_soal, judul_soal, instruksi, tipe_soal, answer_cell, expected_value, poin) VALUES
+(1, 'intermediate', 11, 'Hitung Total per Item', 'Di sel E2, buat rumus untuk mengalikan Harga (C2) dengan Qty (D2)', 'formula', 'E2', '=C2*D2', 1),
+(1, 'intermediate', 12, 'Total Elektronik', 'Di sel E10, gunakan SUMIF untuk menjumlahkan total kategori "Elektronik"', 'formula', 'E10', '=SUMIF(B2:B8,"Elektronik",E2:E8)', 1),
+(1, 'intermediate', 13, 'Total Furniture', 'Di sel E11, gunakan SUMIF untuk menjumlahkan total kategori "Furniture"', 'formula', 'E11', '=SUMIF(B2:B8,"Furniture",E2:E8)', 1),
+(1, 'intermediate', 14, 'Jumlah Semua Item', 'Di sel E12, hitung jumlah semua item menggunakan COUNTA', 'formula', 'E12', '=COUNTA(A2:A8)', 1),
+(1, 'intermediate', 15, 'Rata-rata Harga', 'Di sel C13, hitung rata-rata harga semua item', 'formula', 'C13', '=AVERAGE(C2:C8)', 1),
+(1, 'intermediate', 16, 'Jumlah Item Elektronik', 'Di sel D10, hitung item berkategori Elektronik menggunakan COUNTIF', 'formula', 'D10', '=COUNTIF(B2:B8,"Elektronik")', 1),
+(1, 'intermediate', 17, 'Jumlah Item Furniture', 'Di sel D11, hitung item berkategori Furniture menggunakan COUNTIF', 'formula', 'D11', '=COUNTIF(B2:B8,"Furniture")', 1),
+(1, 'intermediate', 18, 'Total Qty Semua', 'Di sel D12, jumlahkan semua qty di kolom D', 'formula', 'D12', '=SUM(D2:D8)', 1),
+(1, 'intermediate', 19, 'Harga Tertinggi', 'Di sel C14, temukan harga tertinggi menggunakan MAX', 'formula', 'C14', '=MAX(C2:C8)', 1),
+(1, 'intermediate', 20, 'Harga Terendah', 'Di sel C15, temukan harga terendah menggunakan MIN', 'formula', 'C15', '=MIN(C2:C8)', 1);
 
 -- ============================================
 -- Trigger: Auto-create profile on signup
@@ -150,14 +119,12 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 -- Row Level Security (RLS)
 -- ============================================
 
--- Enable RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assessment_answers ENABLE ROW LEVEL SECURITY;
 
--- Profiles policies
 CREATE POLICY "Users can view own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
 
@@ -169,7 +136,6 @@ CREATE POLICY "Admin can view all profiles" ON profiles
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
--- Levels policies (public read)
 CREATE POLICY "Anyone can view levels" ON levels
   FOR SELECT USING (true);
 
@@ -178,7 +144,6 @@ CREATE POLICY "Admin can manage levels" ON levels
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
--- Questions policies (public read)
 CREATE POLICY "Anyone can view questions" ON questions
   FOR SELECT USING (true);
 
@@ -187,7 +152,6 @@ CREATE POLICY "Admin can manage questions" ON questions
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
--- Assessments policies
 CREATE POLICY "Users can view own assessments" ON assessments
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -202,7 +166,6 @@ CREATE POLICY "Admin can view all assessments" ON assessments
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
--- Assessment Answers policies
 CREATE POLICY "Users can view own answers" ON assessment_answers
   FOR SELECT USING (
     EXISTS (
