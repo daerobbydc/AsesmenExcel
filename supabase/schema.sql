@@ -1,5 +1,5 @@
 -- ============================================
--- Supabase Schema for Asesmen Excel
+-- Supabase Schema for Asesmen Excel (Interactive)
 -- Jalankan ini di Supabase SQL Editor
 -- ============================================
 
@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS levels (
   nama_level VARCHAR(50) NOT NULL,
   deskripsi TEXT,
   durasi_menit INT DEFAULT 60,
-  jumlah_soal INT DEFAULT 15
+  jumlah_soal INT DEFAULT 10,
+  initial_data JSONB
 );
 
 -- 3. Questions table
@@ -28,8 +29,8 @@ CREATE TABLE IF NOT EXISTS questions (
   nomor_soal INT NOT NULL,
   judul_soal VARCHAR(255) NOT NULL,
   instruksi TEXT NOT NULL,
-  tipe_soal VARCHAR(20) DEFAULT 'hasil' CHECK (tipe_soal IN ('formula', 'hasil', 'format')),
-  expected_cell VARCHAR(10),
+  tipe_soal VARCHAR(20) DEFAULT 'formula' CHECK (tipe_soal IN ('formula', 'hasil', 'input')),
+  answer_cell VARCHAR(10) NOT NULL,
   expected_value VARCHAR(255),
   poin INT DEFAULT 1
 );
@@ -42,8 +43,7 @@ CREATE TABLE IF NOT EXISTS assessments (
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
   skor DECIMAL(5,2) DEFAULT 0,
   mulai_pada TIMESTAMPTZ DEFAULT NOW(),
-  selesai_pada TIMESTAMPTZ,
-  file_upload VARCHAR(255)
+  selesai_pada TIMESTAMPTZ
 );
 
 -- 5. Assessment Answers table
@@ -60,46 +60,69 @@ CREATE TABLE IF NOT EXISTS assessment_answers (
 -- Seed Data
 -- ============================================
 
--- Insert Levels
-INSERT INTO levels (nama_level, deskripsi, durasi_menit, jumlah_soal) VALUES
-('Basic', 'Asesmen dasar Excel meliputi operasi sel, fungsi dasar, formatting, sort & filter', 45, 15),
-('Intermediate', 'Asesmen lanjutan meliputi VLOOKUP/INDEX-MATCH, Pivot Table, Charts, Conditional Formatting', 60, 15);
+-- Insert Levels with initial_data
+INSERT INTO levels (nama_level, deskripsi, durasi_menit, jumlah_soal, initial_data) VALUES
+('Basic', 'Asesmen dasar Excel meliputi operasi sel, fungsi dasar (SUM, AVERAGE, COUNT, MIN, MAX)', 30, 10, '{
+  "data": [
+    ["Nama", "Harga", "Qty", "Total"],
+    ["Apel", 15000, 10, null],
+    ["Jeruk", 12000, 8, null],
+    ["Mangga", 25000, 5, null],
+    ["Pisang", 8000, 15, null],
+    ["Anggur", 30000, 3, null],
+    [null, null, null, null],
+    ["Total Harga:", null, null, null],
+    ["Rata-rata Harga:", null, null, null],
+    ["Jumlah Item:", null, null, null],
+    ["Harga Termurah:", null, null, null],
+    ["Harga Termahal:", null, null, null]
+  ],
+  "colWidths": [150, 120, 80, 120]
+}'),
+('Intermediate', 'Asesmen lanjutan meliputi VLOOKUP, INDEX-MATCH, COUNTIF, SUMIF', 45, 10, '{
+  "data": [
+    ["Item", "Kategori", "Harga", "Qty", "Total"],
+    ["Laptop", "Elektronik", 8500000, 2, null],
+    ["Mouse", "Elektronik", 150000, 10, null],
+    ["Meja", "Furniture", 500000, 3, null],
+    ["Kursi", "Furniture", 350000, 5, null],
+    ["Keyboard", "Elektronik", 250000, 4, null],
+    ["Lemari", "Furniture", 1200000, 1, null],
+    ["Headphone", "Elektronik", 450000, 3, null],
+    [null, null, null, null, null],
+    ["Total Elektronik:", null, null, null, null],
+    ["Total Furniture:", null, null, null, null],
+    ["Jumlah Semua Item:", null, null, null, null],
+    ["Rata-rata Harga:", null, null, null, null]
+  ],
+  "colWidths": [150, 120, 120, 80, 120]
+}');
 
 -- Insert Questions - Basic Level
-INSERT INTO questions (level_id, nomor_soal, judul_soal, instruksi, tipe_soal, expected_cell, expected_value, poin) VALUES
-(1, 1, 'Penjumlahan Sederhana', 'Di sel B5, masukkan rumus untuk menjumlahkan nilai di B2:B4', 'formula', 'B5', '=SUM(B2:B4)', 1),
-(1, 2, 'Rata-rata Data', 'Di sel B6, hitung rata-rata nilai di B2:B5', 'formula', 'B6', '=AVERAGE(B2:B5)', 1),
-(1, 3, 'Menghitung Jumlah Data', 'Di sel B7, hitung jumlah data (angka) di kolom B', 'formula', 'B7', '=COUNT(B2:B6)', 1),
-(1, 4, 'Nilai Minimum', 'Di sel B8, temukan nilai minimum di B2:B6', 'formula', 'B8', '=MIN(B2:B6)', 1),
-(1, 5, 'Nilai Maksimum', 'Di sel B9, temukan nilai maksimum di B2:B6', 'formula', 'B9', '=MAX(B2:B6)', 1),
-(1, 6, 'Formula Kali', 'Di sel C2, kalikan nilai di A2 dengan B2', 'formula', 'C2', '=A2*B2', 1),
-(1, 7, 'Formula Bagi', 'Di sel C3, bagi nilai di A3 dengan B3', 'formula', 'C3', '=A3/B3', 1),
-(1, 8, 'Formatting Angka', 'Format sel B2:B10 sebagai Currency (Rp)', 'format', 'B2', 'currency', 1),
-(1, 9, 'Bold Text', 'Buat teks di sel A1 menjadi Bold', 'format', 'A1', 'bold', 1),
-(1, 10, 'Warna Latar Belakang', 'Ubah warna latar belakang sel A1:A5 menjadi kuning', 'format', 'A1', 'yellow_bg', 1),
-(1, 11, 'Border Tabel', 'Tambahkan border pada range A1:C10', 'format', 'A1', 'border', 1),
-(1, 12, 'Sort Data', 'Urutkan data di range A2:C10 berdasarkan kolom A dari A-Z', 'format', 'A2', 'sorted_az', 1),
-(1, 13, 'Filter Data', 'Filter data di A1:C10 untuk menampilkan baris dengan nilai B > 50', 'format', 'B1', 'filtered', 1),
-(1, 14, 'Freeze Panes', 'Freeze baris pertama (baris 1)', 'format', 'A1', 'frozen', 1),
-(1, 15, 'Lebar Kolom', 'Atur lebar kolom A menjadi 20', 'format', 'A1', 'width_20', 1);
+INSERT INTO questions (level_id, nomor_soal, judul_soal, instruksi, tipe_soal, answer_cell, expected_value, poin) VALUES
+(1, 1, 'Hitung Total per Item', 'Di sel D2, buat rumus untuk mengalikan Harga (B2) dengan Qty (C2), lalu drag ke bawah sampai D6', 'formula', 'D2', '=B2*C2', 1),
+(1, 2, 'Jumlahkan Semua Total', 'Di sel D8, jumlahkan semua nilai di kolom Total (D2:D6)', 'formula', 'D8', '=SUM(D2:D6)', 1),
+(1, 3, 'Rata-rata Harga', 'Di sel B9, hitung rata-rata harga semua item', 'formula', 'B9', '=AVERAGE(B2:B6)', 1),
+(1, 4, 'Hitung Jumlah Item', 'Di sel B10, hitung berapa banyak item ( jumlah baris yang ada data)', 'formula', 'B10', '=COUNT(B2:B6)', 1),
+(1, 5, 'Harga Termurah', 'Di sel B11, temukan harga termurah dari semua item', 'formula', 'B11', '=MIN(B2:B6)', 1),
+(1, 6, 'Harga Termahal', 'Di sel B12, temukan harga termahal dari semua item', 'formula', 'B12', '=MAX(B2:B6)', 1),
+(1, 7, 'Total Qty', 'Di sel C8, jumlahkan semua qty di kolom C', 'formula', 'C8', '=SUM(C2:C6)', 1),
+(1, 8, 'Rata-rata Qty', 'Di sel C9, hitung rata-rata qty', 'formula', 'C9', '=AVERAGE(C2:C6)', 1),
+(1, 9, 'Jumlah Harga Item', 'Di sel B8, jumlahkan semua harga di kolom B', 'formula', 'B8', '=SUM(B2:B6)', 1),
+(1, 10, 'Harga Tertinggi Kedua', 'Di sel B12, gunakan kombinasi MAX dan IF atau cara lain untuk mencari harga tertinggi kedua', 'input', 'B12', '25000', 1);
 
 -- Insert Questions - Intermediate Level
-INSERT INTO questions (level_id, nomor_soal, judul_soal, instruksi, tipe_soal, expected_cell, expected_value, poin) VALUES
-(2, 1, 'VLOOKUP Sederhana', 'Gunakan VLOOKUP untuk mencari nilai "Item3" dari tabel di A2:C10, tampilkan di E2', 'formula', 'E2', '=VLOOKUP("Item3",A2:C10,3,FALSE)', 1),
-(2, 2, 'VLOOKUP dengan Reference', 'Gunakan VLOOKUP dengan cell reference untuk mencari "Item5" dari tabel', 'formula', 'E3', '=VLOOKUP(D3,A2:C10,3,FALSE)', 1),
-(2, 3, 'INDEX-MATCH', 'Gunakan INDEX dan MATCH untuk mengambil nilai dari kolom C berdasarkan "Item4" di kolom A', 'formula', 'E4', '=INDEX(C2:C10,MATCH("Item4",A2:A10,0))', 1),
-(2, 4, 'INDEX-MATCH 2D', 'Gunakan INDEX-MATCH untuk mengambil nilai di persimpangan baris "Item2" dan kolom "Harga"', 'formula', 'E5', '=INDEX(B2:C10,MATCH("Item2",A2:A10,0),2)', 1),
-(2, 5, 'Conditional Formatting Angka', 'Buat conditional formatting: jika nilai di B2:B10 > 100, warnai merah', 'format', 'B2', 'cond_format_red', 1),
-(2, 6, 'Conditional Formatting Teks', 'Buat conditional formatting: jika kolom A berisi "VIP", warnai hijau', 'format', 'A2', 'cond_format_green', 1),
-(2, 7, 'Icon Set', 'Terapkan Icon Set (3 icons) pada kolom C', 'format', 'C2', 'icon_set', 1),
-(2, 8, 'Color Scale', 'Terapkan Color Scale pada kolom B', 'format', 'B2', 'color_scale', 1),
-(2, 9, 'Buat Pivot Table', 'Buat Pivot Table dari data A1:D20, taruh di F1. Rows: Kategori, Values: Sum of Penjualan', 'format', 'F1', 'pivot_table', 1),
-(2, 10, 'Pivot Table Grouping', 'Group data Pivot Table berdasarkan bulan', 'format', 'F1', 'pivot_group', 1),
-(2, 11, 'Bar Chart', 'Buat Bar Chart dari data A1:B10', 'format', 'A1', 'bar_chart', 1),
-(2, 12, 'Pie Chart', 'Buat Pie Chart dari data A1:A10 dan C1:C10', 'format', 'A1', 'pie_chart', 1),
-(2, 13, 'Line Chart', 'Buat Line Chart dari data kolom B', 'format', 'B1', 'line_chart', 1),
-(2, 14, 'Chart Title', 'Buat chart dengan judul "Data Penjualan 2024"', 'format', 'A1', 'chart_title', 1),
-(2, 15, 'Chart Legend', 'Buat chart dengan legenda di posisi bawah', 'format', 'A1', 'chart_legend', 1);
+INSERT INTO questions (level_id, nomor_soal, judul_soal, instruksi, tipe_soal, answer_cell, expected_value, poin) VALUES
+(2, 1, 'Hitung Total per Item', 'Di sel E2, buat rumus untuk mengalikan Harga (C2) dengan Qty (D2), lalu drag ke bawah', 'formula', 'E2', '=C2*D2', 1),
+(2, 2, 'Total Elektronik', 'Di sel E10, gunakan SUMIF untuk menjumlahkan total dari kategori "Elektronik"', 'formula', 'E10', '=SUMIF(B2:B8,"Elektronik",E2:E8)', 1),
+(2, 3, 'Total Furniture', 'Di sel E11, gunakan SUMIF untuk menjumlahkan total dari kategori "Furniture"', 'formula', 'E11', '=SUMIF(B2:B8,"Furniture",E2:E8)', 1),
+(2, 4, 'Jumlah Semua Item', 'Di sel E12, hitung jumlah semua item menggunakan COUNTA atau COUNT', 'formula', 'E12', '=COUNTA(A2:A8)', 1),
+(2, 5, 'Rata-rata Harga', 'Di sel C13, hitung rata-rata harga semua item', 'formula', 'C13', '=AVERAGE(C2:C8)', 1),
+(2, 6, 'Jumlah Item Elektronik', 'Di sel D10, hitung berapa item berkategori Elektronik menggunakan COUNTIF', 'formula', 'D10', '=COUNTIF(B2:B8,"Elektronik")', 1),
+(2, 7, 'Jumlah Item Furniture', 'Di sel D11, hitung berapa item berkategori Furniture menggunakan COUNTIF', 'formula', 'D11', '=COUNTIF(B2:B8,"Furniture")', 1),
+(2, 8, 'Total Qty Semua', 'Di sel D12, jumlahkan semua qty di kolom D', 'formula', 'D12', '=SUM(D2:D8)', 1),
+(2, 9, 'Harga Tertinggi', 'Di sel C14, temukan harga tertinggi menggunakan MAX', 'formula', 'C14', '=MAX(C2:C8)', 1),
+(2, 10, 'Harga Terendah', 'Di sel C15, temukan harga terendah menggunakan MIN', 'formula', 'C15', '=MIN(C2:C8)', 1);
 
 -- ============================================
 -- Trigger: Auto-create profile on signup
@@ -149,6 +172,11 @@ CREATE POLICY "Admin can view all profiles" ON profiles
 -- Levels policies (public read)
 CREATE POLICY "Anyone can view levels" ON levels
   FOR SELECT USING (true);
+
+CREATE POLICY "Admin can manage levels" ON levels
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
 
 -- Questions policies (public read)
 CREATE POLICY "Anyone can view questions" ON questions

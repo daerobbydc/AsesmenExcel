@@ -11,7 +11,7 @@ interface Question {
   judul_soal: string;
   instruksi: string;
   tipe_soal: string;
-  expected_cell: string;
+  answer_cell: string;
   expected_value: string;
   poin: number;
   nama_level?: string;
@@ -27,8 +27,8 @@ export default function ManageQuestionsPage() {
     nomor_soal: 1,
     judul_soal: "",
     instruksi: "",
-    tipe_soal: "hasil",
-    expected_cell: "",
+    tipe_soal: "formula",
+    answer_cell: "",
     expected_value: "",
     poin: 1,
   });
@@ -90,7 +90,7 @@ export default function ManageQuestionsPage() {
       judul_soal: question.judul_soal,
       instruksi: question.instruksi,
       tipe_soal: question.tipe_soal,
-      expected_cell: question.expected_cell,
+      answer_cell: question.answer_cell,
       expected_value: question.expected_value,
       poin: question.poin,
     });
@@ -112,8 +112,8 @@ export default function ManageQuestionsPage() {
       nomor_soal: 1,
       judul_soal: "",
       instruksi: "",
-      tipe_soal: "hasil",
-      expected_cell: "",
+      tipe_soal: "formula",
+      answer_cell: "",
       expected_value: "",
       poin: 1,
     });
@@ -209,19 +209,20 @@ export default function ManageQuestionsPage() {
                     onChange={(e) => setFormData({ ...formData, tipe_soal: e.target.value })}
                     className="input-field"
                   >
-                    <option value="hasil">Hasil</option>
                     <option value="formula">Formula</option>
-                    <option value="format">Format</option>
+                    <option value="input">Input Angka</option>
+                    <option value="hasil">Hasil</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label">Expected Cell</label>
+                  <label className="label">Answer Cell</label>
                   <input
                     type="text"
-                    value={formData.expected_cell}
-                    onChange={(e) => setFormData({ ...formData, expected_cell: e.target.value })}
+                    value={formData.answer_cell}
+                    onChange={(e) => setFormData({ ...formData, answer_cell: e.target.value.toUpperCase() })}
                     className="input-field"
                     placeholder="B5"
+                    required
                   />
                 </div>
                 <div>
@@ -231,6 +232,8 @@ export default function ManageQuestionsPage() {
                     value={formData.expected_value}
                     onChange={(e) => setFormData({ ...formData, expected_value: e.target.value })}
                     className="input-field"
+                    placeholder="=SUM(B2:B4) atau 25000"
+                    required
                   />
                 </div>
               </div>
