@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <Link href="/admin/questions" className="card hover:shadow-lg transition-shadow">
             <div className="flex items-center">
               <div className="bg-excel-green/10 p-4 rounded-lg">
@@ -153,6 +153,20 @@ export default function AdminDashboardPage() {
               <div className="ml-4">
                 <h3 className="text-lg font-bold">Review Asesmen</h3>
                 <p className="text-gray-600 text-sm">Lihat dan review jawaban user</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/admin/answer-key" className="card hover:shadow-lg transition-shadow">
+            <div className="flex items-center">
+              <div className="bg-yellow-100 p-4 rounded-lg">
+                <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-bold">Kunci Jawaban</h3>
+                <p className="text-gray-600 text-sm">Lihat semua jawaban benar per soal</p>
               </div>
             </div>
           </Link>

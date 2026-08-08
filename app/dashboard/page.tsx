@@ -70,7 +70,7 @@ export default function DashboardPage() {
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Placement Test untuk menentukan level Excel Anda</p>
         </div>
 
@@ -133,72 +133,66 @@ export default function DashboardPage() {
 
           {assessments.length === 0 ? (
             <div className="card text-center py-8">
-              <svg
-                className="w-16 h-16 text-gray-300 mx-auto mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               <p className="text-gray-500">Belum ada riwayat asesmen</p>
               <p className="text-sm text-gray-400 mt-2">Mulai placement test untuk melihat hasil di sini</p>
             </div>
           ) : (
-            <div className="card overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4">Tanggal</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-left py-3 px-4">Skor Basic</th>
-                    <th className="text-left py-3 px-4">Skor Intermediate</th>
-                    <th className="text-left py-3 px-4">Level Lolos</th>
-                    <th className="text-left py-3 px-4">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assessments.map((assessment) => (
-                    <tr key={assessment.id} className="border-b last:border-b-0">
-                      <td className="py-3 px-4 text-gray-600">
-                        {formatDate(assessment.mulai_pada)}
-                      </td>
-                      <td className="py-3 px-4">{getStatusBadge(assessment.status)}</td>
-                      <td className="py-3 px-4 font-semibold">
-                        {assessment.status === "completed"
-                          ? `${assessment.skor_basic}%`
-                          : "-"}
-                      </td>
-                      <td className="py-3 px-4 font-semibold">
-                        {assessment.status === "completed" && assessment.skor_intermediate !== null
-                          ? `${assessment.skor_intermediate}%`
-                          : "-"}
-                      </td>
-                      <td className="py-3 px-4">
-                        {assessment.status === "completed"
-                          ? getLevelBadge(assessment.qualified_level)
-                          : "-"}
-                      </td>
-                      <td className="py-3 px-4">
-                        {assessment.status === "completed" && (
-                          <Link
-                            href={`/assessment/results/${assessment.id}`}
-                            className="text-excel-green hover:underline text-sm font-medium"
-                          >
-                            Lihat Hasil
-                          </Link>
-                        )}
-                      </td>
+            <>
+              <div className="hidden md:block card overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4">Tanggal</th>
+                      <th className="text-left py-3 px-4">Status</th>
+                      <th className="text-left py-3 px-4">Skor Basic</th>
+                      <th className="text-left py-3 px-4">Skor Intermediate</th>
+                      <th className="text-left py-3 px-4">Level Lolos</th>
+                      <th className="text-left py-3 px-4">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {assessments.map((assessment) => (
+                      <tr key={assessment.id} className="border-b last:border-b-0">
+                        <td className="py-3 px-4 text-gray-600">{formatDate(assessment.mulai_pada)}</td>
+                        <td className="py-3 px-4">{getStatusBadge(assessment.status)}</td>
+                        <td className="py-3 px-4 font-semibold">{assessment.status === "completed" ? `${assessment.skor_basic}%` : "-"}</td>
+                        <td className="py-3 px-4 font-semibold">{assessment.status === "completed" && assessment.skor_intermediate !== null ? `${assessment.skor_intermediate}%` : "-"}</td>
+                        <td className="py-3 px-4">{assessment.status === "completed" ? getLevelBadge(assessment.qualified_level) : "-"}</td>
+                        <td className="py-3 px-4">
+                          {assessment.status === "completed" && (
+                            <Link href={`/assessment/results/${assessment.id}`} className="text-excel-green hover:underline text-sm font-medium">Lihat Hasil</Link>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="md:hidden space-y-3">
+                {assessments.map((assessment) => (
+                  <div key={assessment.id} className="card">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-500">{formatDate(assessment.mulai_pada)}</span>
+                      {getStatusBadge(assessment.status)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div><span className="text-gray-500">Basic:</span> <span className="font-semibold">{assessment.status === "completed" ? `${assessment.skor_basic}%` : "-"}</span></div>
+                      <div><span className="text-gray-500">Intermediate:</span> <span className="font-semibold">{assessment.status === "completed" && assessment.skor_intermediate !== null ? `${assessment.skor_intermediate}%` : "-"}</span></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      {assessment.status === "completed" ? getLevelBadge(assessment.qualified_level) : <span />}
+                      {assessment.status === "completed" && (
+                        <Link href={`/assessment/results/${assessment.id}`} className="text-excel-green hover:underline text-sm font-medium">Lihat Hasil</Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

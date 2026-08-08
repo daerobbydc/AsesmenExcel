@@ -99,12 +99,12 @@ INSERT INTO questions (level_id, level_type, nomor_soal, judul_soal, instruksi, 
 (1, 'intermediate', 12, 'Total Elektronik', 'Di sel E10, gunakan SUMIF untuk menjumlahkan total kategori "Elektronik"', 'formula', 'E10', '=SUMIF(B2:B8,"Elektronik",E2:E8)', 1),
 (1, 'intermediate', 13, 'Total Furniture', 'Di sel E11, gunakan SUMIF untuk menjumlahkan total kategori "Furniture"', 'formula', 'E11', '=SUMIF(B2:B8,"Furniture",E2:E8)', 1),
 (1, 'intermediate', 14, 'Jumlah Semua Item', 'Di sel E12, hitung jumlah semua item menggunakan COUNTA', 'formula', 'E12', '=COUNTA(A2:A8)', 1),
-(1, 'intermediate', 15, 'Rata-rata Harga', 'Di sel C13, hitung rata-rata harga semua item', 'formula', 'C13', '=AVERAGE(C2:C8)', 1),
+(1, 'intermediate', 15, 'Cari Harga dengan VLOOKUP', 'Di sel G17, gunakan VLOOKUP untuk mencari harga "Mouse" dari tabel referensi G2:H8', 'formula', 'G17', '=VLOOKUP("Mouse",G2:H8,2,FALSE)', 1),
 (1, 'intermediate', 16, 'Jumlah Item Elektronik', 'Di sel D10, hitung item berkategori Elektronik menggunakan COUNTIF', 'formula', 'D10', '=COUNTIF(B2:B8,"Elektronik")', 1),
 (1, 'intermediate', 17, 'Jumlah Item Furniture', 'Di sel D11, hitung item berkategori Furniture menggunakan COUNTIF', 'formula', 'D11', '=COUNTIF(B2:B8,"Furniture")', 1),
 (1, 'intermediate', 18, 'Total Qty Semua', 'Di sel D12, jumlahkan semua qty di kolom D', 'formula', 'D12', '=SUM(D2:D8)', 1),
-(1, 'intermediate', 19, 'Harga Tertinggi', 'Di sel C14, temukan harga tertinggi menggunakan MAX', 'formula', 'C14', '=MAX(C2:C8)', 1),
-(1, 'intermediate', 20, 'Harga Terendah', 'Di sel C15, temukan harga terendah menggunakan MIN', 'formula', 'C15', '=MIN(C2:C8)', 1);
+(1, 'intermediate', 19, 'Cari Harga dengan HLOOKUP', 'Di sel G18, gunakan HLOOKUP untuk mencari harga "Meja" dari tabel horizontal G14:K15', 'formula', 'G18', '=HLOOKUP("Meja",G14:K15,2,FALSE)', 1),
+(1, 'intermediate', 20, 'Cari Harga dengan INDEX/MATCH', 'Di sel G19, gunakan INDEX dan MATCH untuk mencari harga "Keyboard" dari kolom Harga', 'formula', 'G19', '=INDEX(C2:C8,MATCH("Keyboard",A2:A8,0))', 1);
 
 -- ============================================
 -- SELESAI! Schema sudah terupdate

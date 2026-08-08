@@ -15,6 +15,8 @@ interface Assessment {
   qualified_level: string | null;
   mulai_pada: string;
   selesai_pada: string;
+  tab_switch_count: number;
+  question_time_spent: Record<string, number>;
 }
 
 interface Answer {
@@ -255,6 +257,39 @@ export default function ResultsPage() {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Anti-Cheating Info */}
+        <div className="card mb-8">
+          <h3 className="text-lg font-bold mb-4">Informasi Integritas</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-gray-50 rounded-lg text-center">
+              <p className="text-sm text-gray-600">Pindah Tab</p>
+              <p className={`text-2xl font-bold ${
+                (assessment.tab_switch_count || 0) > 3 ? "text-red-600" : "text-green-600"
+              }`}>
+                {assessment.tab_switch_count || 0}x
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg text-center">
+              <p className="text-sm text-gray-600">Rata-rata Waktu/Soal</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {assessment.question_time_spent && Object.keys(assessment.question_time_spent).length > 0
+                  ? Math.round(
+                      Object.values(assessment.question_time_spent).reduce((a: number, b: number) => a + b, 0) /
+                      Object.values(assessment.question_time_spent).length
+                    )
+                  : 0}s
+              </p>
+            </div>
+          </div>
+          {(assessment.tab_switch_count || 0) > 5 && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">
+                ⚠️ Catatan: Terdeteksi {assessment.tab_switch_count} kali pindah tab selama ujian.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Detail Answers */}

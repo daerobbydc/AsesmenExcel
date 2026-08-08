@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { assessmentId, cellValues, currentPhase } = body;
+    const { assessmentId, cellValues, currentPhase, tabSwitchCount, questionTimeSpent } = body;
 
     if (!assessmentId || !cellValues || !currentPhase) {
       return NextResponse.json(
@@ -144,6 +144,8 @@ export async function POST(request: NextRequest) {
         .from("assessments")
         .update({
           skor_basic: skor,
+          tab_switch_count: tabSwitchCount || 0,
+          question_time_spent: questionTimeSpent || {},
         })
         .eq("id", assessmentId);
 
@@ -174,6 +176,8 @@ export async function POST(request: NextRequest) {
           skor_intermediate: skor,
           qualified_level: qualifiedLevel,
           selesai_pada: new Date().toISOString(),
+          tab_switch_count: tabSwitchCount || 0,
+          question_time_spent: questionTimeSpent || {},
         })
         .eq("id", assessmentId);
 

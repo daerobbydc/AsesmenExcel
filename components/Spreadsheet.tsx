@@ -15,14 +15,14 @@ interface SpreadsheetProps {
   colWidths?: number[];
 }
 
-export default function Spreadsheet({
+export default function SpreadsheetComponent({
   initialData,
   answerCells,
   onCellsChange,
   readOnly = false,
   colWidths,
 }: SpreadsheetProps) {
-  const hotRef = useRef<HotTable>(null);
+  const hotRef = useRef<any>(null);
   const [data, setData] = useState<any[][]>(initialData);
 
   useEffect(() => {
@@ -38,38 +38,13 @@ export default function Spreadsheet({
     [onCellsChange]
   );
 
-  const getCellClassName = useCallback(
+  const isAnswerCell = useCallback(
     (row: number, col: number) => {
       const cellRef = String.fromCharCode(65 + col) + (row + 1);
-      const isAnswerCell = answerCells.some((ac) => ac.cell === cellRef);
-      if (isAnswerCell) {
-        return "answer-cell";
-      }
-      return "";
+      return answerCells.some((ac) => ac.cell === cellRef);
     },
     [answerCells]
   );
-
-  const getCellMeta = useCallback(
-    (row: number, col: number) => {
-      const cellRef = String.fromCharCode(65 + col) + (row + 1);
-      const isAnswerCell = answerCells.some((ac) => ac.cell === cellRef);
-
-      if (readOnly || !isAnswerCell) {
-        return { readOnly: true };
-      }
-      return {};
-    },
-    [answerCells, readOnly]
-  );
-
-  const formatCurrency = useCallback((value: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(value);
-  }, []);
 
   const hotSettings = {
     data: data,
@@ -82,26 +57,13 @@ export default function Spreadsheet({
     cell: answerCells.map((ac) => {
       const col = ac.cell.charCodeAt(0) - 65;
       const row = parseInt(ac.cell.slice(1)) - 1;
-      return {
-        row,
-        col,
-        className: "answer-cell",
-      };
+      return { row, col, className: "answer-cell" };
     }),
     cells: function (row: number, col: number) {
+      const isAnswer = isAnswerCell(row, col);
       return {
-        readOnly: readOnly || !answerCells.some((ac) => {
-          const acCol = ac.cell.charCodeAt(0) - 65;
-          const acRow = parseInt(ac.cell.slice(1)) - 1;
-          return acRow === row && acCol === col;
-        }),
-        className: answerCells.some((ac) => {
-          const acCol = ac.cell.charCodeAt(0) - 65;
-          const acRow = parseInt(ac.cell.slice(1)) - 1;
-          return acRow === row && acCol === col;
-        })
-          ? "answer-cell"
-          : "",
+        readOnly: readOnly || !isAnswer,
+        className: isAnswer ? "answer-cell" : "",
       };
     },
     colWidths: colWidths || undefined,
@@ -111,7 +73,7 @@ export default function Spreadsheet({
     stretchH: "none" as const,
     contextMenu: false,
     manualRowResize: false,
-    fillHandle: false,
+    fillHandle: { autoInsertRow: false },
     undoRedo: false,
   };
 
