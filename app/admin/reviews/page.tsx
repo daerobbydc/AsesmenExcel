@@ -11,8 +11,12 @@ interface AssessmentWithUser {
   level_id: number;
   status: string;
   skor: number;
+  skor_basic: number;
+  skor_intermediate: number;
+  qualified_level: string | null;
   mulai_pada: string;
   selesai_pada: string;
+  tab_switch_count: number;
   nama_level: string;
   nama_user: string;
   email_user: string;
@@ -37,10 +41,13 @@ export default function ReviewsPage() {
         level_id,
         status,
         skor,
+        skor_basic,
+        skor_intermediate,
+        qualified_level,
         mulai_pada,
         selesai_pada,
-        levels (nama_level),
-        profiles!user_id (nama_lengkap, email)
+        tab_switch_count,
+        levels (nama_level)
       `)
       .order("mulai_pada", { ascending: false });
 
@@ -50,20 +57,44 @@ export default function ReviewsPage() {
       query = query.eq("status", "active");
     }
 
-    const { data } = await query;
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Fetch error:", error);
+    }
 
     if (data) {
+      const userIds = Array.from(new Set(data.map((a: any) => a.user_id).filter(Boolean)));
+      
+      let profilesMap: Record<string, { nama_lengkap: string; email: string }> = {};
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, nama_lengkap, email")
+          .in("id", userIds);
+        
+        if (profilesData) {
+          profilesData.forEach((p: any) => {
+            profilesMap[p.id] = { nama_lengkap: p.nama_lengkap, email: p.email };
+          });
+        }
+      }
+
       const formatted = data.map((a: any) => ({
         id: a.id,
         user_id: a.user_id,
         level_id: a.level_id,
         status: a.status,
         skor: a.skor,
+        skor_basic: a.skor_basic,
+        skor_intermediate: a.skor_intermediate,
+        qualified_level: a.qualified_level,
         mulai_pada: a.mulai_pada,
         selesai_pada: a.selesai_pada,
+        tab_switch_count: a.tab_switch_count,
         nama_level: a.levels?.nama_level || "Unknown",
-        nama_user: a.profiles?.nama_lengkap || "Unknown",
-        email_user: a.profiles?.email || "Unknown",
+        nama_user: profilesMap[a.user_id]?.nama_lengkap || "Unknown",
+        email_user: profilesMap[a.user_id]?.email || "Unknown",
       }));
       setAssessments(formatted);
     }
@@ -98,7 +129,7 @@ export default function ReviewsPage() {
   }
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-8 pt-24">
       <div className="container mx-auto px-4">
         <div className="mb-8">
           <Link href="/admin" className="text-excel-green hover:underline text-sm mb-2 block">
@@ -147,46 +178,56 @@ export default function ReviewsPage() {
             <thead>
               <tr className="border-b">
                 <th className="text-left py-3 px-4">User</th>
-                <th className="text-left py-3 px-4">Level</th>
                 <th className="text-left py-3 px-4">Tanggal</th>
                 <th className="text-left py-3 px-4">Status</th>
-                <th className="text-left py-3 px-4">Skor</th>
+                <th className="text-left py-3 px-4">Skor Basic</th>
+                <th className="text-left py-3 px-4">Skor Inter</th>
+                <th className="text-left py-3 px-4">Level</th>
+                <th className="text-left py-3 px-4">Tab Switch</th>
                 <th className="text-left py-3 px-4">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {assessments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-500">
+                  <td colSpan={8} className="py-8 text-center text-gray-500">
                     Tidak ada data asesmen
                   </td>
                 </tr>
               ) : (
                 assessments.map((a) => (
-                  <tr key={a.id} className="border-b last:border-b-0">
+                  <tr key={a.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors">
                     <td className="py-3 px-4">
                       <div>
-                        <p className="font-medium">{a.nama_user}</p>
-                        <p className="text-sm text-gray-500">{a.email_user}</p>
+                        <p className="font-medium text-sm">{a.nama_user}</p>
+                        <p className="text-xs text-gray-500">{a.email_user}</p>
                       </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={a.level_id === 1 ? "badge-green" : "badge-blue"}>
-                        {a.nama_level}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
+                    <td className="py-3 px-4 text-gray-600 text-sm">
                       {formatDate(a.mulai_pada)}
                     </td>
                     <td className="py-3 px-4">{getStatusBadge(a.status)}</td>
+                    <td className="py-3 px-4 text-sm font-semibold">
+                      {a.status === "completed" ? `${a.skor_basic || 0}%` : "-"}
+                    </td>
+                    <td className="py-3 px-4 text-sm font-semibold">
+                      {a.status === "completed" && a.skor_intermediate != null ? `${a.skor_intermediate}%` : "-"}
+                    </td>
                     <td className="py-3 px-4">
                       {a.status === "completed" ? (
-                        <span className={`font-bold ${getScoreColor(a.skor)}`}>
-                          {a.skor}%
+                        <span className={`badge text-xs ${
+                          a.qualified_level === "Intermediate" ? "badge-blue" : "badge-green"
+                        }`}>
+                          {a.qualified_level || "Basic"}
                         </span>
-                      ) : (
-                        "-"
-                      )}
+                      ) : "-"}
+                    </td>
+                    <td className="py-3 px-4 text-sm">
+                      <span className={`font-medium ${
+                        (a.tab_switch_count || 0) > 3 ? "text-red-600" : "text-gray-500"
+                      }`}>
+                        {a.tab_switch_count || 0}x
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       {a.status === "completed" && (
@@ -195,7 +236,7 @@ export default function ReviewsPage() {
                           className="text-excel-green hover:underline text-sm font-medium"
                           target="_blank"
                         >
-                          Lihat Detail
+                          Detail
                         </Link>
                       )}
                     </td>

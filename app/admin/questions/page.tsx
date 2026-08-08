@@ -128,7 +128,7 @@ export default function ManageQuestionsPage() {
   }
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-8 pt-24">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <div>

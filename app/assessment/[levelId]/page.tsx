@@ -216,7 +216,7 @@ export default function AssessmentPage() {
   }
 
   return (
-    <div className="min-h-screen py-6">
+    <div className="min-h-screen py-6 pt-24">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

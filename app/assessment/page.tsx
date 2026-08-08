@@ -368,7 +368,7 @@ export default function AssessmentPage() {
   const answeredCount = getCurrentQuestions().filter((q) => cellValues[q.answer_cell]).length;
 
   return (
-    <div className="min-h-screen py-6">
+    <div className="min-h-screen py-6 pt-24">
       {showFullscreenWarning && started && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">

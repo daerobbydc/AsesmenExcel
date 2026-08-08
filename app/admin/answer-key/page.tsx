@@ -153,7 +153,7 @@ export default function AnswerKeyPage() {
   }
 
   return (
-    <div className="min-h-screen py-6">
+    <div className="min-h-screen py-6 pt-24">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -170,7 +170,7 @@ export default function AnswerKeyPage() {
         {/* Basic Section */}
         <div className="card mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Soal Basic (10 soal)</h2>
+            <h2 className="text-xl font-bold text-gray-900">Soal Basic (20 soal, 55 poin)</h2>
             <span className="px-3 py-1 rounded-full bg-excel-green text-white text-sm font-medium">
               Lulus ≥ 60%
             </span>
@@ -190,7 +190,7 @@ export default function AnswerKeyPage() {
         {/* Intermediate Section */}
         <div className="card mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Soal Intermediate (10 soal)</h2>
+            <h2 className="text-xl font-bold text-gray-900">Soal Intermediate (15 soal, 45 poin)</h2>
             <span className="px-3 py-1 rounded-full bg-primary-600 text-white text-sm font-medium">
               Lulus ≥ 60%
             </span>
