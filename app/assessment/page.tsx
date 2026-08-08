@@ -292,7 +292,7 @@ export default function AssessmentPage() {
     if (currentQuestionIdx < questions.length - 1) {
       setCurrentQuestionIdx(currentQuestionIdx + 1);
     } else {
-      handleSubmit();
+      handleSubmit(newCellValues);
     }
   };
 
@@ -314,18 +314,21 @@ export default function AssessmentPage() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (prebuiltCellValues?: Record<string, string>) => {
     if (!assessmentId) { setError("Asesmen belum dimulai"); return; }
+    if (submitting) return;
 
+    const finalCellValues = prebuiltCellValues || { ...cellValues };
+    if (!prebuiltCellValues && currentQuestion) {
+      finalCellValues[currentQuestion.answer_cell] = answerInput;
+    }
+
+    const finalTimeSpent = { ...questionTimeSpent };
     if (currentQuestion) {
-      const newCellValues = { ...cellValues };
-      newCellValues[currentQuestion.answer_cell] = answerInput;
-      setCellValues(newCellValues);
-
       const qId = currentQuestion.id;
       const now = Date.now();
       const elapsed = Math.floor((now - questionStartTimeRef.current) / 1000);
-      setQuestionTimeSpent((prev) => ({ ...prev, [qId]: (prev[qId] || 0) + elapsed }));
+      finalTimeSpent[qId] = (questionTimeSpent[qId] || 0) + elapsed;
     }
 
     setSubmitting(true);
@@ -337,10 +340,10 @@ export default function AssessmentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assessmentId,
-          cellValues,
+          cellValues: finalCellValues,
           currentPhase,
           tabSwitchCount,
-          questionTimeSpent,
+          questionTimeSpent: finalTimeSpent,
         }),
       });
       const result = await response.json();
@@ -363,7 +366,6 @@ export default function AssessmentPage() {
       setTimeout(() => { router.push(`/assessment/results/${assessmentId}`); }, 2000);
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setSubmitting(false);
     }
   };

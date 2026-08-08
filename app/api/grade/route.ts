@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (currentPhase === "basic") {
-      await supabase
+      const { error: updateError } = await supabase
         .from("assessments")
         .update({
           skor_basic: skor,
@@ -148,6 +148,10 @@ export async function POST(request: NextRequest) {
           question_time_spent: questionTimeSpent || {},
         })
         .eq("id", assessmentId);
+
+      if (updateError) {
+        console.error("Failed to update basic score:", updateError);
+      }
 
       return NextResponse.json({
         success: true,
@@ -158,17 +162,21 @@ export async function POST(request: NextRequest) {
         poinDidapat,
       });
     } else {
-      const { data: assessment } = await supabase
+      const { data: assessment, error: assessError } = await supabase
         .from("assessments")
         .select("skor_basic")
         .eq("id", assessmentId)
         .single();
 
+      if (assessError) {
+        console.error("Failed to fetch assessment for intermediate:", assessError);
+      }
+
       const skorBasic = assessment?.skor_basic || 0;
       const totalSkor = Math.round((skorBasic + skor) / 2);
       const qualifiedLevel = skorBasic >= 60 && skor >= 60 ? "Intermediate" : "Basic";
 
-      await supabase
+      const { error: finalError } = await supabase
         .from("assessments")
         .update({
           status: "completed",
@@ -180,6 +188,10 @@ export async function POST(request: NextRequest) {
           question_time_spent: questionTimeSpent || {},
         })
         .eq("id", assessmentId);
+
+      if (finalError) {
+        console.error("Failed to finalize assessment:", finalError);
+      }
 
       return NextResponse.json({
         success: true,
