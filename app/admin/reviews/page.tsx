@@ -17,7 +17,6 @@ interface AssessmentWithUser {
   mulai_pada: string;
   selesai_pada: string;
   tab_switch_count: number;
-  nama_level: string;
   nama_user: string;
   email_user: string;
 }
@@ -35,20 +34,7 @@ export default function ReviewsPage() {
   const fetchAssessments = async () => {
     let query = supabase
       .from("assessments")
-      .select(`
-        id,
-        user_id,
-        level_id,
-        status,
-        skor,
-        skor_basic,
-        skor_intermediate,
-        qualified_level,
-        mulai_pada,
-        selesai_pada,
-        tab_switch_count,
-        levels (nama_level)
-      `)
+      .select("*")
       .order("mulai_pada", { ascending: false });
 
     if (filter === "completed") {
@@ -60,18 +46,22 @@ export default function ReviewsPage() {
     const { data, error } = await query;
 
     if (error) {
-      console.error("Fetch error:", error);
+      console.error("Fetch assessments error:", error);
     }
 
-    if (data) {
+    if (data && data.length > 0) {
       const userIds = Array.from(new Set(data.map((a: any) => a.user_id).filter(Boolean)));
       
       let profilesMap: Record<string, { nama_lengkap: string; email: string }> = {};
       if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
+        const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("id, nama_lengkap, email")
           .in("id", userIds);
+        
+        if (profilesError) {
+          console.error("Fetch profiles error:", profilesError);
+        }
         
         if (profilesData) {
           profilesData.forEach((p: any) => {
@@ -92,11 +82,12 @@ export default function ReviewsPage() {
         mulai_pada: a.mulai_pada,
         selesai_pada: a.selesai_pada,
         tab_switch_count: a.tab_switch_count,
-        nama_level: a.levels?.nama_level || "Unknown",
         nama_user: profilesMap[a.user_id]?.nama_lengkap || "Unknown",
         email_user: profilesMap[a.user_id]?.email || "Unknown",
       }));
       setAssessments(formatted);
+    } else {
+      setAssessments([]);
     }
     setLoading(false);
   };
