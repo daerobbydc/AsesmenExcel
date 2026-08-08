@@ -89,10 +89,17 @@ export default function AssessmentPage() {
   const [questionTimeSpent, setQuestionTimeSpent] = useState<Record<number, number>>({});
   const questionStartTimeRef = useRef<number>(Date.now());
   const currentQuestionIdxRef = useRef(currentQuestionIdx);
+  const cellValuesRef = useRef(cellValues);
+  const answerInputRef = useRef(answerInput);
+  const currentQuestionRef = useRef<Question | null>(null);
+  const questionTimeSpentRef = useRef(questionTimeSpent);
+  const submittingRef = useRef(submitting);
 
-  useEffect(() => {
-    currentQuestionIdxRef.current = currentQuestionIdx;
-  }, [currentQuestionIdx]);
+  useEffect(() => { cellValuesRef.current = cellValues; }, [cellValues]);
+  useEffect(() => { answerInputRef.current = answerInput; }, [answerInput]);
+  useEffect(() => { questionTimeSpentRef.current = questionTimeSpent; }, [questionTimeSpent]);
+  useEffect(() => { submittingRef.current = submitting; }, [submitting]);
+  useEffect(() => { currentQuestionIdxRef.current = currentQuestionIdx; }, [currentQuestionIdx]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,7 +131,35 @@ export default function AssessmentPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmit();
+
+          if (submittingRef.current || !assessmentId) return 0;
+
+          const q = currentQuestionRef.current;
+          const cv = { ...cellValuesRef.current };
+          const ts = { ...questionTimeSpentRef.current };
+
+          if (q) {
+            cv[q.answer_cell] = answerInputRef.current;
+            const elapsed = Math.floor((Date.now() - questionStartTimeRef.current) / 1000);
+            ts[q.id] = (ts[q.id] || 0) + elapsed;
+          }
+
+          fetch("/api/grade", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              assessmentId,
+              cellValues: cv,
+              currentPhase,
+              tabSwitchCount,
+              questionTimeSpent: ts,
+            }),
+          }).then(() => {
+            router.push(`/assessment/results/${assessmentId}`);
+          }).catch(() => {
+            router.push(`/assessment/results/${assessmentId}`);
+          });
+
           return 0;
         }
         return prev - 1;
@@ -184,6 +219,8 @@ export default function AssessmentPage() {
     currentPhase === "basic" ? basicQuestions : intermediateQuestions;
 
   const currentQuestion = getCurrentQuestions()[currentQuestionIdx];
+
+  useEffect(() => { currentQuestionRef.current = currentQuestion; }, [currentQuestion]);
 
   useEffect(() => {
     if (currentQuestion) {
