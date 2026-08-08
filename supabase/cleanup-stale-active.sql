@@ -1,5 +1,5 @@
--- Cleanup: Expire all active assessments with no scores (stuck from old flow)
+-- Cleanup: Expire all stuck active assessments (never completed)
 UPDATE assessments 
 SET status = 'expired' 
 WHERE status = 'active' 
-  AND skor_basic IS NULL;
+  AND selesai_pada IS NULL;
