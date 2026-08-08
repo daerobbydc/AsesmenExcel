@@ -76,6 +76,10 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
+  const hasCompleted = assessments.some((a) => a.status === "completed");
+  const hasActive = assessments.some((a) => a.status === "active");
+  const completedAssessment = assessments.find((a) => a.status === "completed");
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
@@ -156,12 +160,34 @@ export default function DashboardPage() {
             </ol>
           </div>
 
-          <Link
-            href="/assessment"
-            className="btn-primary block text-center text-lg py-3.5"
-          >
-            Mulai Placement Test
-          </Link>
+          {hasCompleted ? (
+            <div className="text-center">
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-4">
+                <p className="text-green-700 font-semibold mb-1">Anda sudah menyelesaikan Placement Test</p>
+                <p className="text-green-600 text-sm">Skor: <strong>{completedAssessment?.skor}%</strong> | Level: <strong>{completedAssessment?.qualified_level || "Basic"}</strong></p>
+              </div>
+              <Link
+                href={`/assessment/results/${completedAssessment?.id}`}
+                className="btn-primary block text-center text-lg py-3.5"
+              >
+                Lihat Hasil
+              </Link>
+            </div>
+          ) : hasActive ? (
+            <Link
+              href="/assessment"
+              className="btn-primary block text-center text-lg py-3.5"
+            >
+              Lanjutkan Asesmen
+            </Link>
+          ) : (
+            <Link
+              href="/assessment"
+              className="btn-primary block text-center text-lg py-3.5"
+            >
+              Mulai Placement Test
+            </Link>
+          )}
         </div>
 
         {/* History */}

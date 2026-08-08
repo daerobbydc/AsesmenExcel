@@ -25,6 +25,7 @@ export default function ReviewsPage() {
   const [assessments, setAssessments] = useState<AssessmentWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [resetting, setResetting] = useState<number | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -90,6 +91,25 @@ export default function ReviewsPage() {
       setAssessments([]);
     }
     setLoading(false);
+  };
+
+  const handleReset = async (assessmentId: number) => {
+    if (!confirm("Reset asesmen ini? Peserta akan bisa mengerjakan ulang.")) return;
+
+    setResetting(assessmentId);
+
+    await supabase
+      .from("assessment_answers")
+      .delete()
+      .eq("assessment_id", assessmentId);
+
+    await supabase
+      .from("assessments")
+      .delete()
+      .eq("id", assessmentId);
+
+    setAssessments((prev) => prev.filter((a) => a.id !== assessmentId));
+    setResetting(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -221,15 +241,26 @@ export default function ReviewsPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      {a.status === "completed" && (
-                        <Link
-                          href={`/assessment/results/${a.id}`}
-                          className="text-excel-green hover:underline text-sm font-medium"
-                          target="_blank"
-                        >
-                          Detail
-                        </Link>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {a.status === "completed" && (
+                          <Link
+                            href={`/assessment/results/${a.id}`}
+                            className="text-excel-green hover:underline text-sm font-medium"
+                            target="_blank"
+                          >
+                            Detail
+                          </Link>
+                        )}
+                        {(a.status === "completed" || a.status === "active" || a.status === "expired") && (
+                          <button
+                            onClick={() => handleReset(a.id)}
+                            disabled={resetting === a.id}
+                            className="text-red-600 hover:underline text-sm font-medium disabled:opacity-50"
+                          >
+                            {resetting === a.id ? "Resetting..." : "Reset"}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
