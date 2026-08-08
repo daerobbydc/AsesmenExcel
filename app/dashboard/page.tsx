@@ -46,15 +46,29 @@ export default function DashboardPage() {
 
       if (assessmentsData) {
         const now = Date.now();
-        const staleIds: number[] = [];
+        const toExpire: number[] = [];
+        const toComplete: any[] = [];
 
         const cleaned = assessmentsData.map((a: any) => {
           if (a.status === "active") {
             const startTime = new Date(a.mulai_pada).getTime();
             const minutesElapsed = (now - startTime) / 60000;
-            if (minutesElapsed > 10) {
-              staleIds.push(a.id);
-              return { ...a, status: "expired" };
+
+            if (minutesElapsed > (levelData?.durasi_menit || 45) + 5) {
+              if (a.skor_basic > 0) {
+                toComplete.push(a);
+                return {
+                  ...a,
+                  status: "completed",
+                  skor: a.skor_basic,
+                  skor_intermediate: 0,
+                  qualified_level: "Basic",
+                  selesai_pada: new Date().toISOString(),
+                };
+              } else {
+                toExpire.push(a.id);
+                return { ...a, status: "expired" };
+              }
             }
           }
           return a;
@@ -62,11 +76,24 @@ export default function DashboardPage() {
 
         setAssessments(cleaned);
 
-        if (staleIds.length > 0) {
+        if (toExpire.length > 0) {
           await supabase
             .from("assessments")
             .update({ status: "expired" })
-            .in("id", staleIds);
+            .in("id", toExpire);
+        }
+
+        for (const a of toComplete) {
+          await supabase
+            .from("assessments")
+            .update({
+              status: "completed",
+              skor: a.skor_basic,
+              skor_intermediate: 0,
+              qualified_level: "Basic",
+              selesai_pada: new Date().toISOString(),
+            })
+            .eq("id", a.id);
         }
       }
 
