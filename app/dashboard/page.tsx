@@ -45,14 +45,14 @@ export default function DashboardPage() {
         .order("mulai_pada", { ascending: false });
 
       if (assessmentsData) {
-        const durasi = (levelData?.durasi_menit || 45) * 60 * 1000;
         const now = Date.now();
         const staleIds: number[] = [];
 
         const cleaned = assessmentsData.map((a: any) => {
           if (a.status === "active") {
             const startTime = new Date(a.mulai_pada).getTime();
-            if (now - startTime > durasi + 5 * 60 * 1000) {
+            const minutesElapsed = (now - startTime) / 60000;
+            if (minutesElapsed > 10) {
               staleIds.push(a.id);
               return { ...a, status: "expired" };
             }
