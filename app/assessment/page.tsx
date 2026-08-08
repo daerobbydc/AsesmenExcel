@@ -212,16 +212,56 @@ export default function AssessmentPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
-    const { data, error } = await supabase
+    const durasiMs = (level?.durasi_menit || 45) * 60 * 1000;
+    const now = Date.now();
+
+    const { data: existingActive } = await supabase
       .from("assessments")
-      .insert({ user_id: user.id, level_id: 1, status: "active" })
-      .select()
-      .single();
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("mulai_pada", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error) { setError("Gagal memulai asesmen"); return; }
+    let assessment;
 
-    setAssessmentId(data.id);
-    setTimeLeft((level?.durasi_menit || 45) * 60);
+    if (existingActive) {
+      const startTime = new Date(existingActive.mulai_pada).getTime();
+      if (now - startTime > durasiMs + 5 * 60 * 1000) {
+        await supabase
+          .from("assessments")
+          .update({ status: "expired" })
+          .eq("id", existingActive.id);
+
+        const { data: newAssessment, error } = await supabase
+          .from("assessments")
+          .insert({ user_id: user.id, level_id: 1, status: "active" })
+          .select()
+          .single();
+
+        if (error) { setError("Gagal memulai asesmen"); return; }
+        assessment = newAssessment;
+      } else {
+        assessment = existingActive;
+      }
+    } else {
+      const { data: newAssessment, error } = await supabase
+        .from("assessments")
+        .insert({ user_id: user.id, level_id: 1, status: "active" })
+        .select()
+        .single();
+
+      if (error) { setError("Gagal memulai asesmen"); return; }
+      assessment = newAssessment;
+    }
+
+    setAssessmentId(assessment.id);
+
+    const elapsed = now - new Date(assessment.mulai_pada).getTime();
+    const remaining = Math.max(0, Math.floor((durasiMs - elapsed) / 1000));
+    setTimeLeft(remaining);
+
     setStarted(true);
     setCurrentQuestionIdx(0);
     setTabSwitchCount(0);

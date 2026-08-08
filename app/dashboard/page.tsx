@@ -29,23 +29,47 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: assessmentsData } = await supabase
-        .from("assessments")
-        .select("*")
-        .order("mulai_pada", { ascending: false });
-
       const { data: levelData } = await supabase
         .from("levels")
         .select("jumlah_soal, durasi_menit")
         .eq("id", 1)
         .single();
 
-      if (assessmentsData) {
-        setAssessments(assessmentsData);
-      }
       if (levelData) {
         setLevel(levelData);
       }
+
+      const { data: assessmentsData } = await supabase
+        .from("assessments")
+        .select("*")
+        .order("mulai_pada", { ascending: false });
+
+      if (assessmentsData) {
+        const durasi = (levelData?.durasi_menit || 45) * 60 * 1000;
+        const now = Date.now();
+        const staleIds: number[] = [];
+
+        const cleaned = assessmentsData.map((a: any) => {
+          if (a.status === "active") {
+            const startTime = new Date(a.mulai_pada).getTime();
+            if (now - startTime > durasi + 5 * 60 * 1000) {
+              staleIds.push(a.id);
+              return { ...a, status: "expired" };
+            }
+          }
+          return a;
+        });
+
+        setAssessments(cleaned);
+
+        if (staleIds.length > 0) {
+          await supabase
+            .from("assessments")
+            .update({ status: "expired" })
+            .in("id", staleIds);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -177,9 +201,11 @@ export default function DashboardPage() {
                         <td className="py-4 px-5 font-semibold text-sm">{assessment.status === "completed" && assessment.skor_intermediate !== null ? `${assessment.skor_intermediate}%` : "-"}</td>
                         <td className="py-4 px-5">{assessment.status === "completed" ? getLevelBadge(assessment.qualified_level) : "-"}</td>
                         <td className="py-4 px-5">
-                          {assessment.status === "completed" && (
+                          {assessment.status === "completed" ? (
                             <Link href={`/assessment/results/${assessment.id}`} className="text-excel-green hover:text-excel-darkgreen hover:underline text-sm font-semibold transition-colors">Lihat Hasil</Link>
-                          )}
+                          ) : assessment.status === "active" ? (
+                            <Link href="/assessment" className="text-primary-600 hover:text-primary-700 hover:underline text-sm font-semibold transition-colors">Lanjutkan</Link>
+                          ) : null}
                         </td>
                       </tr>
                     ))}
@@ -205,10 +231,12 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      {assessment.status === "completed" ? getLevelBadge(assessment.qualified_level) : <span />}
-                      {assessment.status === "completed" && (
+                      {assessment.status === "completed" ? getLevelBadge(assessment.qualified_level) : assessment.status === "active" ? <span className="badge-yellow">Perlu Diselesaikan</span> : <span />}
+                      {assessment.status === "completed" ? (
                         <Link href={`/assessment/results/${assessment.id}`} className="text-excel-green hover:text-excel-darkgreen hover:underline text-sm font-semibold transition-colors">Lihat Hasil</Link>
-                      )}
+                      ) : assessment.status === "active" ? (
+                        <Link href="/assessment" className="text-primary-600 hover:text-primary-700 hover:underline text-sm font-semibold transition-colors">Lanjutkan</Link>
+                      ) : null}
                     </div>
                   </div>
                 ))}
