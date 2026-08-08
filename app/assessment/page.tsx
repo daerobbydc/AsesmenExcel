@@ -257,6 +257,13 @@ export default function AssessmentPage() {
   };
 
   const handlePrevQuestion = () => {
+    if (currentPhase === "intermediate" && currentQuestionIdx === 0) {
+      setCurrentPhase("basic");
+      setCurrentQuestionIdx(basicQuestions.length - 1);
+      setAnswerInput("");
+      questionStartTimeRef.current = Date.now();
+      return;
+    }
     if (currentQuestionIdx > 0) {
       if (currentQuestion) {
         const newCellValues = { ...cellValues };
@@ -299,7 +306,7 @@ export default function AssessmentPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Gagal mengirim jawaban");
 
-      if (currentPhase === "basic" && result.passedBasic) {
+      if (currentPhase === "basic") {
         setSuccess("Soal Basic selesai! Melanjutkan ke Soal Intermediate...");
         setTimeout(() => {
           setCurrentPhase("intermediate");
@@ -364,8 +371,13 @@ export default function AssessmentPage() {
     );
   }
 
-  const totalQuestions = getCurrentQuestions().length;
-  const answeredCount = getCurrentQuestions().filter((q) => cellValues[q.answer_cell]).length;
+  const totalQuestions = basicQuestions.length + intermediateQuestions.length;
+  const basicAnswered = basicQuestions.filter((q) => cellValues[q.answer_cell]).length;
+  const intermediateAnswered = intermediateQuestions.filter((q) => cellValues[q.answer_cell]).length;
+  const answeredCount = basicAnswered + intermediateAnswered;
+  const globalQuestionIdx = currentPhase === "basic"
+    ? currentQuestionIdx
+    : basicQuestions.length + currentQuestionIdx;
 
   return (
     <div className="min-h-screen py-6 pt-24">
@@ -468,21 +480,21 @@ export default function AssessmentPage() {
                 </h2>
                 <div className="flex items-center gap-4">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentPhase === "basic" ? "bg-excel-green text-white" : "bg-gray-200 text-gray-600"}`}>
-                    Basic
+                    Basic ({basicQuestions.length} soal)
                   </span>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${currentPhase === "intermediate" ? "bg-primary-600 text-white" : "bg-gray-200 text-gray-600"}`}>
-                    Intermediate
+                    Intermediate ({intermediateQuestions.length} soal)
                   </span>
                 </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-excel-green h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((currentQuestionIdx + 1) / totalQuestions) * (currentPhase === "basic" ? 50 : 100)}%` }}
+                  style={{ width: `${((globalQuestionIdx + 1) / totalQuestions) * 100}%` }}
                 />
               </div>
               <p className="text-sm text-gray-500 mt-1">
-                Soal {currentQuestionIdx + 1} dari {totalQuestions} | {answeredCount} terisi
+                Soal {globalQuestionIdx + 1} dari {totalQuestions} | {answeredCount} terisi
               </p>
             </div>
 
@@ -547,7 +559,7 @@ export default function AssessmentPage() {
               <div className="flex items-center justify-between gap-2">
                 <button
                   onClick={handlePrevQuestion}
-                  disabled={currentQuestionIdx === 0}
+                  disabled={currentPhase === "basic" && currentQuestionIdx === 0}
                   className="px-3 sm:px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   Sebelumnya
