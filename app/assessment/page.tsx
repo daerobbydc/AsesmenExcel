@@ -622,7 +622,13 @@ export default function AssessmentPage() {
                 <input
                   type="text"
                   value={answerInput}
-                  onChange={(e) => setAnswerInput(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAnswerInput(val);
+                    if (currentQuestion) {
+                      setCellValues((prev) => ({ ...prev, [currentQuestion.answer_cell]: val }));
+                    }
+                  }}
                   onKeyDown={(e) => { if (e.key === "Enter") handleNextQuestion(); }}
                   placeholder={`Ketik rumus, contoh: ${currentQuestion.tipe_soal === "formula" ? "=SUM(B2:B6)" : "12345"}`}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg font-mono focus:ring-2 focus:ring-excel-green focus:border-excel-green"
